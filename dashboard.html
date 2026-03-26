@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WinWellbeing</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;
+  --bg2:#161c2d;
+  --bg3:#1e2640;
+  --card:#19213a;
+  --border:rgba(255,255,255,0.07);
+  --text:#dde1f0;
+  --muted:#6b7494;
+  --accent:#6c8ef7;
+  --accent2:#a78bfa;
+  --green:#34d399;
+  --amber:#fbbf24;
+  --red:#f87171;
+  --pink:#f472b6;
+  --teal:#2dd4bf;
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.5;overflow-x:hidden}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:56px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;letter-spacing:-.4px;color:var(--text)}
+.logo-ring{width:26px;height:26px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center}
+.logo-ring svg{width:14px;height:14px}
+.nav{display:flex;gap:2px}
+.nav-btn{padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);border:none;background:none;transition:all .15s;font-family:inherit}
+.nav-btn:hover{color:var(--text);background:var(--bg3)}
+.nav-btn.active{color:var(--text);background:var(--bg3)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.date-ctrl{display:flex;align-items:center;gap:6px}
+.date-ctrl button{background:var(--bg3);border:1px solid var(--border);color:var(--muted);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.date-ctrl button:hover{color:var(--text);border-color:var(--accent)}
+.date-label{font-size:12px;color:var(--muted);min-width:72px;text-align:center}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.85)}}
+.live-label{font-size:11px;color:var(--green)}
+
+/* LAYOUT */
+.page{display:none;padding:24px 28px;max-width:1300px;margin:0 auto}
+.page.active{display:block}
+
+/* STAT CARDS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.scard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;position:relative;overflow:hidden}
+.scard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:14px 14px 0 0}
+.scard.blue::before{background:var(--accent)}
+.scard.green::before{background:var(--green)}
+.scard.amber::before{background:var(--amber)}
+.scard.pink::before{background:var(--pink)}
+.scard-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+.scard-val{font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1}
+.scard.blue .scard-val{color:var(--accent)}
+.scard.green .scard-val{color:var(--green)}
+.scard.amber .scard-val{color:var(--amber)}
+.scard.pink .scard-val{color:var(--pink)}
+.scard-sub{font-size:12px;color:var(--muted);margin-top:6px}
+
+/* CHART CARDS */
+.grid-main{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:16px}
+.grid-two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.ccard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
+.ccard-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;display:flex;align-items:center;justify-content:space-between}
+.ccard-sub{font-size:11px;color:var(--muted);margin-bottom:16px}
+.chart-wrap{position:relative}
+
+/* APP LIST */
+.app-rows{display: block;}
+.arow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.arow:last-child{border-bottom:none}
+.arow-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;color:#fff}
+.arow-name{flex:1;min-width:0}
+.arow-name-text{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arow-cat{font-size:10px;color:var(--muted);text-transform:capitalize}
+.arow-bar-wrap{width:80px;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.arow-bar{height:100%;border-radius:2px;transition:width .6s ease}
+.arow-time{font-size:12px;color:var(--muted);min-width:42px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* TIMELINE */
+.timeline{max-height:320px;overflow-y:auto}
+.timeline::-webkit-scrollbar{width:4px}
+.timeline::-webkit-scrollbar-track{background:transparent}
+.timeline::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:2px}
+.tl-row{display:flex;gap:12px;padding:7px 0;border-bottom:1px solid var(--border);align-items:flex-start}
+.tl-row:last-child{border-bottom:none}
+.tl-time{font-size:11px;color:var(--muted);min-width:38px;padding-top:1px;font-variant-numeric:tabular-nums}
+.tl-dot{width:7px;height:7px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.tl-content{min-width:0;flex:1}
+.tl-app{font-size:12px;font-weight:600}
+.tl-title{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-dur{font-size:11px;color:var(--muted);flex-shrink:0;margin-left:4px}
+
+/* WEEK PAGE */
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:22px}
+.wday{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center;cursor:pointer;transition:border-color .15s}
+.wday:hover{border-color:var(--accent)}
+.wday.today{border-color:var(--accent)}
+.wday.active{border-color:var(--accent);background:var(--bg3)}
+.wday-name{font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.wday-hrs{font-size:22px;font-weight:800;letter-spacing:-1px}
+.wday-bar{width:100%;height:3px;background:var(--bg3);border-radius:2px;margin-top:8px;overflow:hidden}
+.wday-fill{height:100%;border-radius:2px;background:var(--accent);transition:width .6s}
+
+/* EMPTY */
+.empty{text-align:center;padding:50px 20px;color:var(--muted);font-size:13px}
+
+/* SCROLLBAR GLOBAL */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-ring">
+      <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="7" cy="7" r="5" stroke="white" stroke-width="1.5"/>
+        <circle cx="7" cy="7" r="2" fill="white"/>
+      </svg>
+    </div>
+    WinWellbeing
+  </div>
+  <div class="nav">
+    <button class="nav-btn active" onclick="showPage('today',this)">Today</button>
+    <button class="nav-btn" onclick="showPage('week',this)">This week</button>
+    <button class="nav-btn" onclick="showPage('apps',this)">All apps</button>
+  </div>
+  <div class="topbar-right">
+    <div class="date-ctrl" id="date-ctrl">
+      <button onclick="changeDay(-1)">&#8592;</button>
+      <span class="date-label" id="date-label">Today</span>
+      <button onclick="changeDay(1)">&#8594;</button>
+    </div>
+    <div class="live-dot" id="live-dot"></div>
+    <span class="live-label">Live</span>
+  </div>
+</div>
+
+<!-- TODAY PAGE -->
+<div class="page active" id="page-today">
+  <div class="stats-row">
+    <div class="scard blue">
+      <div class="scard-label">Screen time</div>
+      <div class="scard-val" id="stat-total">—</div>
+      <div class="scard-sub" id="stat-total-sub">loading…</div>
+    </div>
+    <div class="scard green">
+      <div class="scard-label">Most used app</div>
+      <div class="scard-val" id="stat-top" style="font-size:18px">—</div>
+      <div class="scard-sub" id="stat-top-time">—</div>
+    </div>
+    <div class="scard amber">
+      <div class="scard-label">Apps active</div>
+      <div class="scard-val" id="stat-apps">—</div>
+      <div class="scard-sub">unique apps</div>
+    </div>
+    <div class="scard pink">
+      <div class="scard-label">Peak hour</div>
+      <div class="scard-val" id="stat-peak" style="font-size:18px">—</div>
+      <div class="scard-sub" id="stat-peak-sub">most active</div>
+    </div>
+  </div>
+
+  <div class="grid-main">
+    <div class="ccard">
+      <div class="ccard-title">Usage by app</div>
+      <div class="ccard-sub">time spent in each application</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="chart-bar"></canvas></div>
+    </div>
+    <div class="ccard">
+      <div class="ccard-title">Distribution</div>
+      <div class="ccard-sub">share of total screen time</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="chart-doughnut"></canvas></div>
+      <div id="donut-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px"></div>
+    </div>
+  </div>
+
+  <div class="grid-two">
+    <div class="ccard">
+      <div class="ccard-title">Hourly activity</div>
+      <div class="ccard-sub">screen time by hour of day</div>
+      <div class="chart-wrap" style="height:140px"><canvas id="chart-hourly"></canvas></div>
+    </div>
+    <div class="ccard">
+      <div class="ccard-title">Top apps today</div>
+      <div class="ccard-sub">sorted by time</div>
+      <div class="app-rows" id="app-list"></div>
+    </div>
+  </div>
+
+  <div class="ccard">
+    <div class="ccard-title">
+      Activity timeline
+      <span style="font-size:11px;color:var(--muted);font-weight:400">recent window switches</span>
+    </div>
+    <div class="ccard-sub"></div>
+    <div class="timeline" id="timeline"></div>
+  </div>
+</div>
+
+<!-- WEEK PAGE -->
+<div class="page" id="page-week">
+  <div class="week-grid" id="week-grid"></div>
+  <div class="ccard" style="margin-bottom:16px">
+    <div class="ccard-title">Daily screen time</div>
+    <div class="ccard-sub">last 7 days</div>
+    <div class="chart-wrap" style="height:180px"><canvas id="chart-week"></canvas></div>
+  </div>
+  <div class="ccard">
+    <div class="ccard-title">Weekly app breakdown</div>
+    <div class="ccard-sub">total time per app across the week</div>
+    <div class="app-rows" id="week-app-list"></div>
+  </div>
+</div>
+
+<!-- ALL APPS PAGE -->
+<div class="page" id="page-apps">
+  <div class="ccard">
+    <div class="ccard-title">All apps — today</div>
+    <div class="ccard-sub">every app tracked with window titles</div>
+    <div id="all-apps-detail"></div>
+  </div>
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────
+let currentDate = new Date();
+let dayOffset = 0;
+let dayData = null;
+let weekData = null;
+let charts = {};
+let refreshInterval = null;
+
+// ─── Utilities ───────────────────────────────────────────────────
+function fmt(seconds) {
+  seconds = Math.round(seconds);
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+function fmtHour(h) {
+  const ampm = h >= 12 ? 'pm' : 'am';
+  const hr = h % 12 || 12;
+  return `${hr}${ampm}`;
+}
+
+function getDateStr(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d.toISOString().split('T')[0];
+}
+
+function getDateLabel(offset) {
+  if (offset === 0) return 'Today';
+  if (offset === -1) return 'Yesterday';
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function initials(name) {
+  return (name || '?').substring(0, 2).toUpperCase();
+}
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+// ─── Navigation ──────────────────────────────────────────────────
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  document.getElementById('date-ctrl').style.display = name === 'today' ? 'flex' : 'none';
+  if (name === 'week') renderWeek();
+  if (name === 'apps') renderAllApps();
+}
+
+function changeDay(delta) {
+  dayOffset = Math.min(0, dayOffset + delta);
+  document.getElementById('date-label').textContent = getDateLabel(dayOffset);
+  loadTodayData();
+}
+
+// ─── Data fetching ────────────────────────────────────────────────
+async function loadTodayData() {
+  try {
+    const date = getDateStr(dayOffset);
+    const res = await fetch(`/api/today?date=${date}`);
+    dayData = await res.json();
+    renderToday();
+  } catch(e) {
+    console.warn('API not available, using demo data');
+    dayData = generateDemoData();
+    renderToday();
+  }
+}
+
+async function loadWeekData() {
+  try {
+    const res = await fetch('/api/week');
+    weekData = await res.json();
+  } catch(e) {
+    weekData = generateDemoWeek();
+  }
+}
+
+// ─── TODAY RENDER ─────────────────────────────────────────────────
+function renderToday() {
+  if (!dayData) return;
+  const apps = dayData.apps || {};
+  const timeline = dayData.timeline || [];
+  const appList = Object.entries(apps).sort((a,b) => b[1].total_seconds - a[1].total_seconds);
+  const totalSecs = appList.reduce((s, [,v]) => s + v.total_seconds, 0);
+
+  // Stats
+  document.getElementById('stat-total').textContent = fmt(totalSecs);
+  document.getElementById('stat-total-sub').textContent = getDateLabel(dayOffset);
+  document.getElementById('stat-apps').textContent = appList.length;
+
+  if (appList.length > 0) {
+    const [topApp, topInfo] = appList[0];
+    document.getElementById('stat-top').textContent = topApp;
+    document.getElementById('stat-top-time').textContent = fmt(topInfo.total_seconds);
+  }
+
+  // Peak hour
+  const hourlyTotals = {};
+  for (const [, info] of appList) {
+    for (const [h, s] of Object.entries(info.hourly || {})) {
+      hourlyTotals[h] = (hourlyTotals[h] || 0) + s;
+    }
+  }
+  const peakHour = Object.entries(hourlyTotals).sort((a,b)=>b[1]-a[1])[0];
+  if (peakHour) {
+    document.getElementById('stat-peak').textContent = fmtHour(parseInt(peakHour[0]));
+    document.getElementById('stat-peak-sub').textContent = fmt(peakHour[1]) + ' in that hour';
+  }
+
+  // Bar chart
+  const top8 = appList.slice(0, 8);
+  destroyChart('bar');
+  const barCtx = document.getElementById('chart-bar').getContext('2d');
+  charts['bar'] = new Chart(barCtx, {
+    type: 'bar',
+    data: {
+      labels: top8.map(([n]) => n),
+      datasets: [{
+        data: top8.map(([,v]) => Math.round(v.total_seconds / 60)),
+        backgroundColor: top8.map(([,v]) => v.color + 'cc'),
+        borderColor: top8.map(([,v]) => v.color),
+        borderWidth: 1,
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ' ' + fmt(ctx.raw * 60) }
+      }},
+      scales: {
+        x: { ticks: { color: '#6b7494', font: { size: 11 } }, grid: { display: false }, border: { display: false } },
+        y: { ticks: { color: '#6b7494', font: { size: 11 }, callback: v => v + 'm' }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { display: false } }
+      }
+    }
+  });
+
+  // Doughnut
+  const top5 = appList.slice(0, 5);
+  destroyChart('doughnut');
+  const doCtx = document.getElementById('chart-doughnut').getContext('2d');
+  charts['doughnut'] = new Chart(doCtx, {
+    type: 'doughnut',
+    data: {
+      labels: top5.map(([n]) => n),
+      datasets: [{
+        data: top5.map(([,v]) => Math.round(v.total_seconds)),
+        backgroundColor: top5.map(([,v]) => v.color + 'cc'),
+        borderColor: '#19213a',
+        borderWidth: 3,
+        hoverOffset: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '68%',
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ' ' + fmt(ctx.raw) }
+      }}
+    }
+  });
+
+  // Donut legend
+  const legend = document.getElementById('donut-legend');
+  legend.innerHTML = top5.map(([name, info]) => `
+    <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)">
+      <span style="width:8px;height:8px;border-radius:2px;background:${info.color};display:inline-block;flex-shrink:0"></span>
+      ${name}
+    </div>
+  `).join('');
+
+  // Hourly chart
+  const hours = Array.from({length: 24}, (_, i) => i);
+  const hourData = hours.map(h => Math.round((hourlyTotals[h] || 0) / 60));
+  destroyChart('hourly');
+  const hrCtx = document.getElementById('chart-hourly').getContext('2d');
+  charts['hourly'] = new Chart(hrCtx, {
+    type: 'bar',
+    data: {
+      labels: hours.map(h => h % 3 === 0 ? fmtHour(h) : ''),
+      datasets: [{
+        data: hourData,
+        backgroundColor: hourData.map(v => v > 0 ? '#6c8ef7aa' : '#1e2640'),
+        borderRadius: 3,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ' ' + fmt(ctx.raw * 60), title: ctx => fmtHour(parseInt(ctx[0].label) || ctx[0].dataIndex) }
+      }},
+      scales: {
+        x: { ticks: { color: '#6b7494', font: { size: 10 } }, grid: { display: false }, border: { display: false } },
+        y: { display: false }
+      }
+    }
+  });
+
+  // App list
+  const maxSecs = appList[0]?.[1].total_seconds || 1;
+  document.getElementById('app-list').innerHTML = appList.slice(0, 8).map(([name, info]) => `
+    <div class="arow">
+      <div class="arow-icon" style="background:${info.color}33;color:${info.color}">${initials(name)}</div>
+      <div class="arow-name">
+        <div class="arow-name-text">${name}</div>
+        <div class="arow-cat">${info.category}</div>
+      </div>
+      <div class="arow-bar-wrap"><div class="arow-bar" style="width:${Math.round(info.total_seconds/maxSecs*100)}%;background:${info.color}"></div></div>
+      <div class="arow-time">${fmt(info.total_seconds)}</div>
+    </div>
+  `).join('');
+
+  // Timeline
+  const tl = document.getElementById('timeline');
+  const recent = [...timeline].reverse().slice(0, 60);
+  if (recent.length === 0) {
+    tl.innerHTML = '<div class="empty">No activity recorded yet</div>';
+  } else {
+    tl.innerHTML = recent.map(e => `
+      <div class="tl-row">
+        <div class="tl-time">${e.time}</div>
+        <div class="tl-dot" style="background:${e.color}"></div>
+        <div class="tl-content">
+          <div class="tl-app" style="color:${e.color}">${e.app}</div>
+          <div class="tl-title">${e.title || '—'}</div>
+        </div>
+        <div class="tl-dur">${fmt(e.seconds)}</div>
+      </div>
+    `).join('');
+  }
+}
+
+// ─── WEEK RENDER ──────────────────────────────────────────────────
+async function renderWeek() {
+  await loadWeekData();
+  if (!weekData) return;
+
+  const today = new Date().toISOString().split('T')[0];
+  const maxSecs = Math.max(...weekData.map(d => d.total_seconds), 1);
+
+  document.getElementById('week-grid').innerHTML = weekData.map(d => {
+    const dt = new Date(d.date + 'T00:00:00');
+    const dayName = dt.toLocaleDateString('en-US', { weekday: 'short' });
+    const isToday = d.date === today;
+    const hrs = (d.total_seconds / 3600).toFixed(1);
+    const fillPct = Math.round(d.total_seconds / maxSecs * 100);
+    return `
+      <div class="wday ${isToday ? 'today' : ''}">
+        <div class="wday-name">${dayName}</div>
+        <div class="wday-hrs" style="color:${isToday ? 'var(--accent)' : 'var(--text)'}">${hrs}</div>
+        <div style="font-size:10px;color:var(--muted)">hrs</div>
+        <div class="wday-bar"><div class="wday-fill" style="width:${fillPct}%"></div></div>
+      </div>
+    `;
+  }).join('');
+
+  destroyChart('week');
+  const wCtx = document.getElementById('chart-week').getContext('2d');
+  charts['week'] = new Chart(wCtx, {
+    type: 'line',
+    data: {
+      labels: weekData.map(d => {
+        const dt = new Date(d.date + 'T00:00:00');
+        return dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      }),
+      datasets: [{
+        data: weekData.map(d => +(d.total_seconds / 3600).toFixed(2)),
+        borderColor: '#6c8ef7',
+        backgroundColor: '#6c8ef722',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#6c8ef7',
+        pointRadius: 4,
+        pointHoverRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ' ' + ctx.raw.toFixed(1) + ' hrs' }
+      }},
+      scales: {
+        x: { ticks: { color: '#6b7494', font: { size: 11 } }, grid: { display: false }, border: { display: false } },
+        y: { ticks: { color: '#6b7494', font: { size: 11 }, callback: v => v + 'h' }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { display: false } }
+      }
+    }
+  });
+
+  // Weekly app aggregation
+  // Fetch each day's data and aggregate
+  const appTotals = {};
+  for (const d of weekData) {
+    try {
+      const res = await fetch(`/api/today?date=${d.date}`);
+      const dd = await res.json();
+      for (const [app, info] of Object.entries(dd.apps || {})) {
+        if (!appTotals[app]) appTotals[app] = { total_seconds: 0, color: info.color, category: info.category };
+        appTotals[app].total_seconds += info.total_seconds;
+      }
+    } catch(e) {}
+  }
+  const sorted = Object.entries(appTotals).sort((a,b) => b[1].total_seconds - a[1].total_seconds);
+  const maxW = sorted[0]?.[1].total_seconds || 1;
+  document.getElementById('week-app-list').innerHTML = sorted.slice(0, 10).map(([name, info]) => `
+    <div class="arow">
+      <div class="arow-icon" style="background:${info.color}33;color:${info.color}">${initials(name)}</div>
+      <div class="arow-name">
+        <div class="arow-name-text">${name}</div>
+        <div class="arow-cat">${info.category}</div>
+      </div>
+      <div class="arow-bar-wrap"><div class="arow-bar" style="width:${Math.round(info.total_seconds/maxW*100)}%;background:${info.color}"></div></div>
+      <div class="arow-time">${fmt(info.total_seconds)}</div>
+    </div>
+  `).join('');
+}
+
+// ─── ALL APPS RENDER ──────────────────────────────────────────────
+function renderAllApps() {
+  if (!dayData) return;
+  const apps = Object.entries(dayData.apps || {}).sort((a,b) => b[1].total_seconds - a[1].total_seconds);
+  const container = document.getElementById('all-apps-detail');
+  container.innerHTML = apps.map(([name, info]) => {
+    const topTitles = Object.entries(info.titles || {})
+      .sort((a,b) => b[1]-a[1]).slice(0, 5);
+    return `
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div class="arow-icon" style="background:${info.color}33;color:${info.color};width:34px;height:34px;font-size:13px">${initials(name)}</div>
+          <div>
+            <div style="font-size:14px;font-weight:600">${name}</div>
+            <div style="font-size:11px;color:var(--muted)">${info.category} · ${fmt(info.total_seconds)}</div>
+          </div>
+        </div>
+        ${topTitles.length ? `
+          <div style="padding-left:44px">
+            ${topTitles.map(([title, secs]) => `
+              <div style="display:flex;gap:10px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03)">
+                <div style="flex:1;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${title}</div>
+                <div style="font-size:11px;color:var(--muted);flex-shrink:0">${fmt(secs)}</div>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('') || '<div class="empty">No data for this day</div>';
+}
+
+// ─── DEMO DATA (when tracker not running) ────────────────────────
+function generateDemoData() {
+  const apps = {
+    chrome:   { total_seconds: 7200, category: 'browser',       color: '#6c8ef7', titles: { 'YouTube - Lo-fi beats': 1800, 'GitHub - dashboard': 900, 'Stack Overflow - python': 600 }, hourly: {} },
+    Code:     { total_seconds: 5400, category: 'dev',            color: '#a78bfa', titles: { 'dashboard.html - WinWellbeing': 2400, 'tracker.py - WinWellbeing': 1200 }, hourly: {} },
+    Slack:    { total_seconds: 2700, category: 'communication',  color: '#34d399', titles: { '#general': 900, '#dev-team': 600 }, hourly: {} },
+    Outlook:  { total_seconds: 1800, category: 'communication',  color: '#2dd4bf', titles: { 'Inbox - Work': 900 }, hourly: {} },
+    Excel:    { total_seconds: 1200, category: 'productivity',   color: '#fbbf24', titles: { 'Q4 Report.xlsx': 600 }, hourly: {} },
+    spotify:  { total_seconds: 3600, category: 'entertainment',  color: '#f472b6', titles: { 'Now Playing': 3600 }, hourly: {} },
+    explorer: { total_seconds:  400, category: 'system',         color: '#8891aa', titles: {}, hourly: {} },
+  };
+  const hours = [9,10,11,12,13,14,15,16,17,18];
+  const dists = { chrome: hours, Code: [9,10,11,14,15,16], Slack: [9,12,17], Outlook: [9,17], Excel: [10,15], spotify: hours, explorer: [9] };
+  for (const [app, hs] of Object.entries(dists)) {
+    for (let h = 0; h < 24; h++) apps[app].hourly[h] = hs.includes(h) ? Math.round(apps[app].total_seconds / hs.length) : 0;
+  }
+
+  const timeline = [];
+  const tlApps = [
+    ['chrome','YouTube - Lo-fi beats'], ['Code','dashboard.html - WinWellbeing'],
+    ['Slack','#general'], ['Code','tracker.py - WinWellbeing'],
+    ['chrome','GitHub - Issues'], ['Outlook','Inbox - Work'],
+    ['Excel','Q4 Report.xlsx'], ['spotify','Now Playing'],
+    ['chrome','Stack Overflow'], ['Code','server.py - WinWellbeing'],
+  ];
+  let h = 9, m = 0;
+  for (const [app, title] of tlApps) {
+    timeline.push({ time: `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`, app, title, seconds: Math.floor(Math.random()*900)+300, color: apps[app].color });
+    m += 37; if (m >= 60) { h++; m -= 60; }
+  }
+
+  return { date: getDateStr(dayOffset), apps, timeline };
+}
+
+function generateDemoWeek() {
+  const today = new Date();
+  return Array.from({length: 7}, (_, i) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - (6 - i));
+    return { date: d.toISOString().split('T')[0], total_seconds: Math.floor(Math.random() * 18000) + 10800 };
+  });
+}
+
+// ─── INIT + AUTO REFRESH ─────────────────────────────────────────
+document.getElementById('date-label').textContent = 'Today';
+loadTodayData();
+
+// Refresh every 5 seconds when on today's date
+refreshInterval = setInterval(() => {
+  if (dayOffset === 0 && document.getElementById('page-today').classList.contains('active')) {
+    loadTodayData();
+  }
+}, 5000);
+</script>
+</body>
+</html>
